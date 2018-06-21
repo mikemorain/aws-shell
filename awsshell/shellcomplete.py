@@ -13,6 +13,7 @@ import os
 import logging
 
 import botocore.session
+from botocore.credentials import JSONFileCache
 from prompt_toolkit.completion import Completer, Completion
 
 from awsshell import fuzzy
@@ -38,7 +39,11 @@ class AWSShellCompleter(Completer):
     def _create_server_side_completer(self, session=None):
         from awsshell.resource import index
         if session is None:
-            session = botocore.session.Session()
+            # Use the CLI cache instead of the default boto one
+            cli_cache = os.path.join(os.path.expanduser('~'), '.aws/cli/cache')
+            session = botocore.session.get_session()
+            session.get_component('credential_provider')\
+                .get_provider('assume-role').cache = JSONFileCache(cli_cache)
         loader = session.get_component('data_loader')
         completions_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
